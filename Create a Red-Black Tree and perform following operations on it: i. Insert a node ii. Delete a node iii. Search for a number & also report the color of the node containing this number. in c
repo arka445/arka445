@@ -1,0 +1,304 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Define node color
+#define RED 1
+#define BLACK 0
+
+// Structure for Red-Black Tree Node
+typedef struct Node {
+    int data;
+    int color;
+    struct Node *left, *right, *parent;
+} Node;
+
+// Helper function to create a new node
+Node* createNode(int data) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->data = data;
+    newNode->color = RED;  // New nodes are initially red
+    newNode->left = newNode->right = newNode->parent = NULL;
+    return newNode;
+}
+
+// Function to perform left rotation
+void leftRotate(Node **root, Node *x) {
+    Node *y = x->right;
+    x->right = y->left;
+
+    if (y->left != NULL)
+        y->left->parent = x;
+
+    y->parent = x->parent;
+
+    if (x->parent == NULL)
+        *root = y;
+    else if (x == x->parent->left)
+        x->parent->left = y;
+    else
+        x->parent->right = y;
+
+    y->left = x;
+    x->parent = y;
+}
+
+// Function to perform right rotation
+void rightRotate(Node **root, Node *y) {
+    Node *x = y->left;
+    y->left = x->right;
+
+    if (x->right != NULL)
+        x->right->parent = y;
+
+    x->parent = y->parent;
+
+    if (y->parent == NULL)
+        *root = x;
+    else if (y == y->parent->left)
+        y->parent->left = x;
+    else
+        y->parent->right = x;
+
+    x->right = y;
+    y->parent = x;
+}
+
+// Function to fix violations after insertion
+void fixInsert(Node **root, Node *z) {
+    while (z != *root && z->parent->color == RED) {
+        if (z->parent == z->parent->parent->left) {
+            Node *y = z->parent->parent->right;
+
+            if (y != NULL && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
+            } else {
+                if (z == z->parent->right) {
+                    z = z->parent;
+                    leftRotate(root, z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                rightRotate(root, z->parent->parent);
+            }
+        } else {
+            Node *y = z->parent->parent->left;
+
+            if (y != NULL && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
+            } else {
+                if (z == z->parent->left) {
+                    z = z->parent;
+                    rightRotate(root, z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                leftRotate(root, z->parent->parent);
+            }
+        }
+    }
+    (*root)->color = BLACK;
+}
+
+// Function to insert a new node
+void insert(Node **root, int data) {
+    Node *z = createNode(data);
+    Node *y = NULL;
+    Node *x = *root;
+
+    while (x != NULL) {
+        y = x;
+        if (z->data < x->data)
+            x = x->left;
+        else
+            x = x->right;
+    }
+
+    z->parent = y;
+
+    if (y == NULL)
+        *root = z;
+    else if (z->data < y->data)
+        y->left = z;
+    else
+        y->right = z;
+
+    fixInsert(root, z);
+}
+
+// Function to perform transplant during deletion
+void transplant(Node **root, Node *u, Node *v) {
+    if (u->parent == NULL)
+        *root = v;
+    else if (u == u->parent->left)
+        u->parent->left = v;
+    else
+        u->parent->right = v;
+
+    if (v != NULL)
+        v->parent = u->parent;
+}
+
+// Function to fix violations after deletion
+void fixDelete(Node **root, Node *x) {
+    while (x != *root && x->color == BLACK) {
+        if (x == x->parent->left) {
+            Node *w = x->parent->right;
+            if (w->color == RED) {
+                w->color = BLACK;
+                x->parent->color = RED;
+                leftRotate(root, x->parent);
+                w = x->parent->right;
+            }
+
+            if ((w->left == NULL || w->left->color == BLACK) && (w->right == NULL || w->right->color == BLACK)) {
+                w->color = RED;
+                x = x->parent;
+            } else {
+                if (w->right == NULL || w->right->color == BLACK) {
+                    if (w->left != NULL)
+                        w->left->color = BLACK;
+                    w->color = RED;
+                    rightRotate(root, w);
+                    w = x->parent->right;
+                }
+                w->color = x->parent->color;
+                x->parent->color = BLACK;
+                if (w->right != NULL)
+                    w->right->color = BLACK;
+                leftRotate(root, x->parent);
+                x = *root;
+            }
+        } else {
+            Node *w = x->parent->left;
+            if (w->color == RED) {
+                w->color = BLACK;
+                x->parent->color = RED;
+                rightRotate(root, x->parent);
+                w = x->parent->left;
+            }
+
+            if ((w->right == NULL || w->right->color == BLACK) && (w->left == NULL || w->left->color == BLACK)) {
+                w->color = RED;
+                x = x->parent;
+            } else {
+                if (w->left == NULL || w->left->color == BLACK) {
+                    if (w->right != NULL)
+                        w->right->color = BLACK;
+                    w->color = RED;
+                    leftRotate(root, w);
+                    w = x->parent->left;
+                }
+                w->color = x->parent->color;
+                x->parent->color = BLACK;
+                if (w->left != NULL)
+                    w->left->color = BLACK;
+                rightRotate(root, x->parent);
+                x = *root;
+            }
+        }
+    }
+    x->color = BLACK;
+}
+
+// Function to find the minimum value node
+Node* minimum(Node *node) {
+    while (node->left != NULL)
+        node = node->left;
+    return node;
+}
+
+// Function to delete a node
+void deleteNode(Node **root, int data) {
+    Node *z = *root;
+    Node *x, *y;
+
+    while (z != NULL) {
+        if (z->data == data)
+            break;
+        else if (z->data < data)
+            z = z->right;
+        else
+            z = z->left;
+    }
+
+    if (z == NULL)
+        return;  // Node to be deleted not found
+
+    y = z;
+    int yOriginalColor = y->color;
+
+    if (z->left == NULL) {
+        x = z->right;
+        transplant(root, z, z->right);
+    } else if (z->right == NULL) {
+        x = z->left;
+        transplant(root, z, z->left);
+    } else {
+        y = minimum(z->right);
+        yOriginalColor = y->color;
+        x = y->right;
+
+        if (y->parent == z) {
+            if (x != NULL)
+                x->parent = y;
+        } else {
+            transplant(root, y, y->right);
+            y->right = z->right;
+            y->right->parent = y;
+        }
+
+        transplant(root, z, y);
+        y->left = z->left;
+        y->left->parent = y;
+        y->color = z->color;
+    }
+
+    free(z);
+
+    if (yOriginalColor == BLACK)
+        fixDelete(root, x);
+}
+
+// Function to search for a node and report its color
+void search(Node *root, int data) {
+    Node *current = root;
+    while (current != NULL) {
+        if (data == current->data) {
+            printf("Found %d, Color: %s\n", data, (current->color == RED) ? "Red" : "Black");
+            return;
+        } else if (data < current->data)
+            current = current->left;
+        else
+            current = current->right;
+    }
+    printf("%d not found in the tree.\n", data);
+}
+
+int main() {
+    Node *root = NULL;
+
+    // Insert nodes
+    insert(&root, 20);
+    insert(&root, 15);
+    insert(&root, 25);
+    insert(&root, 10);
+    insert(&root, 5);
+    insert(&root, 30);
+
+    // Search for a node and report color
+    search(root, 15);
+    search(root, 10);
+    search(root, 100); // Not found example
+
+    // Delete a node
+    deleteNode(&root, 15);
+    search(root, 15); // Search after deletion
+
+    return 0;
+}
