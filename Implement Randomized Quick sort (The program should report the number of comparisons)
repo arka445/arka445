@@ -1,0 +1,58 @@
+#include <iostream>
+#include <cstdlib> // For rand() and srand()
+#include <ctime>   // For time()
+
+using namespace std;
+
+// Function to swap two elements
+void swap(int &a, int &b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+// Function to partition the array using a random pivot
+int partition(int arr[], int low, int high, int &comparisons) {
+    int pivotIndex = low + rand() % (high - low + 1); // Randomly selecting pivot index
+    swap(arr[pivotIndex], arr[high]); // Move pivot element to the end
+    int pivot = arr[high]; // Pivot element
+    int i = low - 1;
+
+    for (int j = low; j <= high - 1; j++) {
+        comparisons++; // Increment comparisons for each comparison made
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return (i + 1);
+}
+
+// Function to perform randomized quick sort
+void randomizedQuickSort(int arr[], int low, int high, int &comparisons) {
+    if (low < high) {
+        int pivotIndex = partition(arr, low, high, comparisons); // Partition the array and get the pivot index
+        randomizedQuickSort(arr, low, pivotIndex - 1, comparisons); // Recursively sort the left subarray
+        randomizedQuickSort(arr, pivotIndex + 1, high, comparisons); // Recursively sort the right subarray
+    }
+}
+
+int main() {
+    srand(time(0)); // Seed the random number generator
+
+    int arr[] = {12, 11, 13, 5, 6, 7};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    int comparisons = 0;
+
+    randomizedQuickSort(arr, 0, n - 1, comparisons);
+
+    cout << "Sorted array: ";
+    for (int i = 0; i < n; i++)
+        cout << arr[i] << " ";
+    cout << endl;
+
+    cout << "Number of comparisons: " << comparisons << endl;
+
+    return 0;
+}
